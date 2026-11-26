@@ -36,17 +36,10 @@
   const MENU = [
     { label:'ALWIN RUN', act:() => startRun() },
     { label:'PLAY SNAKE', act:() => startSnake() },
-    { label:'PLAY TETRIS', act:() => startTetris() },
-    { label:'VIEW WORK', act:() => jump('#work', 'LOADING WORK') },
-    { label:'ABOUT ME', act:() => jump('#about', 'LOADING PROFILE') },
-    { label:'SAY HELLO', act:() => jump('#contact', 'OPENING CHAT') }
+    { label:'PLAY TETRIS', act:() => startTetris() }
   ];
   let hi = 0, thi = 0, rhi = 0; try { hi = +localStorage.getItem('as-snake-hi') || 0; thi = +localStorage.getItem('as-tetris-hi') || 0; rhi = +localStorage.getItem('as-run-hi') || 0; } catch(e){}
 
-  function jump(sel, m){
-    state = 'msg'; msg = m; msgT = 0;
-    setTimeout(() => { document.querySelector(sel).scrollIntoView({ behavior:'smooth' }); state = 'menu'; }, 650);
-  }
 
   // ---------- snake ----------
   const CELL = 8, GX = 20, GY = 14, OY = 16;
@@ -189,12 +182,12 @@
 
   // ---------- alwin run: a pixel world with parallax, a day cycle and weather ----------
   // One in-game day lasts one real minute. Weather re-rolls at dawn and at noon.
-  const ROCKP = { o:'#3a2413', a:'#c99158', b:'#94613a', c:'#6b4425', g:'#7cb342', G:'#a5d455' };
+  const ROCKP = { o:'#4f4d3b', a:'#d8d4b4', b:'#aeaa8b', c:'#868369', m:'#8cbc3c', M:'#b4d65a' };
   const ROCKS = [
-    ['..oo..','.oabo.','oabbco','obbcco'],
-    ['..ooo..','.oaabo.','.oabbco','oabbbco','obbbcco','obbccco'],
-    ['..oo..','.oabo.','.oabco','oabbco','oabbco','obbcco','obbcco','obccco'],
-    ['...oo..','..oabo.','.oabbco','oabbbco','obbbcco','obbccco','obcccco']
+    ['..mM..','.ommo.','oabbco','obbcco'],
+    ['..mMm..','.oMmmo.','.oabbco','oabbbco','obbbcco','obbccco'],
+    ['..Mm..','.ommo.','.oabco','oabbco','oabbco','obbcco','obbcco','obccco'],
+    ['...mM..','..oMmo.','.oabbco','oabbbco','obbbcco','obbccco','obcccco']
   ];
   const SC = 2, GROUND = 110, WATER = 117, TILE = 320, DAY_MS = 60000;
 
@@ -283,7 +276,7 @@
       return up ? { lf:.9, lb:-.2, kf:1.6, kb:1.4, af:-2.6, ab:-2.2, bf:.4, bb:.4, bob:0, squash:0, head:C_HEAD }
                 : { lf:.35, lb:-.25, kf:.5, kb:.8, af:-1.7, ab:1.9, bf:.3, bb:-.2, bob:0, squash:0, head:C_HEAD };
     }
-    const blink = rFrameT % 3400 < 130 ? C_BLINK : C_HEAD, sq = rLand > 0 ? 1 : 0;
+    const blink = rInv > 1100 ? C_DEAD : rFrameT % 3400 < 130 ? C_BLINK : C_HEAD, sq = rLand > 0 ? 1 : 0;
     if (!rStarted){ const br = Math.floor(rFrameT / 700) % 2; return { lf:.08, lb:-.08, kf:0, kb:0, af:-.12, ab:.1, bf:-.15, bb:-.1, bob:br, squash:0, head:blink }; }
     const ph = rDist / 20 * Math.PI * 2, sw = Math.sin(ph);
     return {
@@ -392,13 +385,13 @@
     return bag[Math.floor(Math.random() * bag.length)];
   }
 
-  let rY, rVy, rObs, rSpeed, rDist, rNext, rPaused, rStarted, rFrameT, rMilestone, rLand = 0, rDeadVy = 0, rLastStep = -1, dust = [];
+  let rY, rVy, rObs, rSpeed, rDist, rNext, rPaused, rStarted, rFrameT, rMilestone, rLand = 0, rDeadVy = 0, rLastStep = -1, dust = [], rLives = 3, rInv = 0, rShake = 0, debris = [];
   let rClock = DAY_MS * .16, rHalf = -1, weather = 'sunny', W8 = { cloud:.3, rain:0, leaf:0, gloom:0 };
   let off = { far:0, mid:0, gr:0, cl:0 }, cloudPos = [], drops = [], leaves = [];
   const STARS = Array.from({ length: 26 }, (_, i) => [(i * 37) % 160, 4 + (i * 53) % 60, i % 3]);
   function startRun(){
     if (!LAY) buildWorld();
-    rY = 0; rVy = 0; rObs = []; rSpeed = 1.1; rDist = 0; rNext = 230; rPaused = false; rStarted = false; rFrameT = 0; rMilestone = 100; rLand = 0; rDeadVy = 0; dust = [];
+    rY = 0; rVy = 0; rObs = []; rSpeed = 1.1; rDist = 0; rNext = 230; rPaused = false; rStarted = false; rFrameT = 0; rMilestone = 100; rLand = 0; rDeadVy = 0; dust = []; coverT = 0; rLives = 3; rInv = 0; rShake = 0; debris = [];
     if (!cloudPos.length) cloudPos = [0, 1, 2, 3].map(i => ({ x: i * 48 + 10, y: 8 + (i * 17) % 30, i }));
     state = 'run';
   }
@@ -455,11 +448,24 @@
     rNext -= rSpeed * f; if (rNext <= 0) rSpawn();
     const score = Math.floor(rDist / 10);
     if (score >= rMilestone){ rMilestone += 100; beep(990, .08); setTimeout(() => beep(1320, .1), 90); }
+    if (rInv > 0) rInv -= dt;
+    if (rShake > 0) rShake -= f;
+    debris.forEach(d => { d.x += (d.vx - rSpeed) * f; d.y += d.vy * f; d.vy += .18 * f; d.life -= dt; });
+    debris = debris.filter(d => d.life > 0 && d.y < GROUND + 2);
+    if (rInv > 0) return;
     const px = 19, pw = 9, pbot = GROUND - rY - 1;
     for (const o of rObs){
-      if (px < o.x + o.w - 4 && px + pw > o.x + 4 && pbot > o.y + 5){
-        state = 'rover'; deadT = 0; rDeadVy = 2.4; beep(300, .5, 'sawtooth', 50);
-        if (score > rhi){ rhi = score; try { localStorage.setItem('as-run-hi', rhi); } catch(e){} }
+      if (px < o.x + o.w - 3 && px + pw > o.x + 3 && pbot > o.y + 2){
+        // rock shatters into bits of stone and moss
+        for (let i = 0; i < 10; i++) debris.push({ x: o.x + o.w / 2, y: o.y + 2, vx: rSpeed + (Math.random() * 2.4 - .6), vy: -1.5 - Math.random() * 1.8, life: 700, c: ['#aeaa8b', '#868369', '#d8d4b4', '#8cbc3c'][i % 4] });
+        rObs = rObs.filter(x => x !== o);
+        rLives--; rShake = 10;
+        if (rLives <= 0){
+          state = 'rover'; deadT = 0; rDeadVy = 2.4; beep(300, .5, 'sawtooth', 50);
+          if (score > rhi){ rhi = score; try { localStorage.setItem('as-run-hi', rhi); } catch(e){} }
+        } else {
+          rInv = 1600; if (rY === 0) rVy = 2.4; beep(240, .18, 'square', 120);
+        }
         return;
       }
     }
@@ -504,7 +510,8 @@
     const dead = state === 'rover';
     if (dead && (rY > 0 || rDeadVy > 0)){ rY = Math.max(0, rY + rDeadVy); rDeadVy -= .19; if (rY === 0) rDeadVy = 0; }
     const runner = drawChar(pose()), rx = 16 - COX, ryy = GROUND - COY - Math.round(rY);
-    wc.drawImage(runner, rx, ryy);
+    if (!(rInv > 0 && Math.floor(rInv / 90) % 2)) wc.drawImage(runner, rx, ryy);
+    debris.forEach(d => { wc.fillStyle = d.c; wc.fillRect(Math.round(d.x), Math.round(d.y), 2, 2); });
     // dust puffs
     dust.forEach(p => { const a2 = Math.max(0, p.life / p.max); wc.fillStyle = `rgba(236,228,200,${a2 * .9})`; const sz = a2 > .5 ? 2 : 1; wc.fillRect(Math.round(p.x), Math.round(p.y), sz, sz); });
     // reflection in the pond
@@ -515,7 +522,8 @@
     if (L.ta > .01){ wc.fillStyle = rgb(L.tint, L.ta); wc.fillRect(0, 0, W, H); }
     if (gl > .01){ wc.fillStyle = rgb([70, 82, 96], gl * .35); wc.fillRect(0, 0, W, H); }
     wc.globalCompositeOperation = 'source-over';
-    ctx.drawImage(worldC, 0, 0);
+    const shk = rShake > 0 ? Math.round((Math.random() * 2 - 1) * Math.min(2, rShake / 4)) : 0;
+    ctx.drawImage(worldC, shk, 0);
     // lamp light at night
     if (night > .05){
       ctx.globalCompositeOperation = 'lighter';
@@ -533,21 +541,70 @@
     const day = Math.floor(rClock / DAY_MS) + 1;
     const label = 'DAY ' + day + ' ' + { sunny:'SUN', cloudy:'CLOUD', rain:'RAIN', breezy:'WIND' }[weather];
     const sx = 'XP ' + String(score).padStart(5, '0'), hx = 'HI ' + String(Math.max(rhi, score)).padStart(5, '0');
-    [[label, 4, 4], [sx, W - 4 - width(sx), 4], [hx, W - 4 - width(hx), 13]].forEach(([s2, x, y]) => { text(ctx, s2, x + 1, y + 1, sh); text(ctx, s2, x, y, ink); });
-    if (!rStarted && state === 'run'){
-      const pan = (y, h) => { ctx.fillStyle = 'rgba(20,18,16,.55)'; ctx.fillRect(14, y, 132, h); };
-      pan(24, 50);
-      center(ctx, 'ALWIN RUN', 29, '#fff6c8', 2);
-      if (Math.floor(tick / 28) % 2 === 0) center(ctx, 'A / TAP TO JUMP', 51, '#ffffff');
-      center(ctx, 'JUMP OVER THE ROCKS', 63, '#cde7b4');
-    }
+    if (rStarted || state === 'rover') [[label, 4, 4], [sx, W - 4 - width(sx), 4], [hx, W - 4 - width(hx), 13]].forEach(([s2, x, y]) => { text(ctx, s2, x + 1, y + 1, sh); text(ctx, s2, x, y, ink); });
+    if (rStarted || state === 'rover') for (let i = 0; i < 3; i++) heart(4 + i * 9, 14, i < rLives);
+    if (!rStarted && state === 'run') drawCover();
     if (state === 'run' && rPaused){ rbox(); center(ctx, 'PAUSED', 46, '#ffffff', 2); center(ctx, 'SELECT FOR MENU', 66, '#cde7b4'); }
-    if (dead){
-      deadT++; rbox();
-      center(ctx, 'GAME OVER', 38, '#ff6b93', 2);
-      center(ctx, 'XP ' + score + (score && score >= rhi ? ' NEW HI!' : ''), 58, '#ffffff');
-      if (deadT > 20) center(ctx, 'A:RETRY  B:MENU', 72, '#cde7b4');
+    if (dead){ deadT++; drawGameOver(score); }
+  }
+  const HEART = ['.oo.oo.','orroRro','orrrrro','.orrro.','..oro..','...o...'];
+  function heart(x, y, full){ spr(ctx, HEART, x, y, 1, full ? { o:'#2a0e18', r:'#ff4f6d', R:'#ffc0cc' } : { o:'#2a0e18', r:'rgba(255,255,255,.35)', R:'rgba(255,255,255,.35)' }); }
+  function pill(x, y, w, label, col){
+    ctx.fillStyle = '#1a0c12'; ctx.fillRect(x + 1, y, w - 2, 13); ctx.fillRect(x, y + 1, w, 11);
+    ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, w - 2, 10);
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(x + 2, y + 2, w - 4, 1);
+    text(ctx, label, Math.round(x + (w - width(label)) / 2), y + 3, '#ffffff');
+  }
+  function drawGameOver(score){
+    const drop = deadT < 30 ? Math.round(-30 * Math.pow(1 - deadT / 30, 2) * Math.abs(Math.cos(deadT / 30 * Math.PI * 1.5))) : 0;
+    for (let y = 18; y < 100; y++){ const e = Math.min(1, Math.min(y - 18, 100 - y) / 10); ctx.fillStyle = `rgba(26,10,30,${.78 * e})`; ctx.fillRect(0, y, W, 1); }
+    otext('GAME OVER', 80, 26 + drop, 2, '#ffe0e8', '#2a0e18', '#ff4f6d');
+    const sc = 'XP ' + score, scx = Math.round(80 - width(sc, 2) / 2);
+    text(ctx, sc, scx + 1, 49, '#2a0e18', 2); text(ctx, sc, scx, 48, '#ffffff', 2);
+    const isBest = score > 0 && score >= rhi;
+    if (isBest){ if (Math.floor(tick / 15) % 2 === 0){ const t2 = 'NEW BEST!', bx = Math.round(80 - width(t2) / 2); ctx.fillStyle = '#ffd54a'; ctx.fillRect(bx - 4, 64, width(t2) + 8, 11); text(ctx, t2, bx, 66, '#2a0e18'); } }
+    else { const t2 = 'BEST ' + rhi + ' XP'; text(ctx, t2, Math.round(80 - width(t2) / 2), 66, '#cfc3d6'); }
+    if (deadT > 30){ pill(26, 81, 52, 'A RETRY', '#3fae5a'); pill(84, 81, 52, 'B MENU', '#5b6380'); }
+  }
+  let coverT = 0;
+  function otext(str, cx, y, scale, fill, outline, low){
+    const x = Math.round(cx - width(str, scale) / 2);
+    for (const [dx, dy] of [[0,3],[1,3],[-1,3],[2,2],[-2,2]]) text(ctx, str, x + dx, y + dy, 'rgba(20,12,6,.45)', scale);   // drop shadow
+    for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1],[-2,0],[2,0],[0,2]]) text(ctx, str, x + dx, y + dy, outline, scale);
+    text(ctx, str, x, y, fill, scale);
+    if (low){ ctx.save(); ctx.beginPath(); ctx.rect(0, y + Math.round(3.5 * scale), W, 7 * scale); ctx.clip(); text(ctx, str, x, y, low, scale); ctx.restore(); }
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; for (let i = 0; i < str.length; i++) ctx.fillRect(x + i * 6 * scale, y, scale, scale);   // glint on each letter
+  }
+  function drawCover(){
+    coverT++;
+    const cx = 80, drop = coverT < 36 ? Math.round(-40 * Math.pow(1 - coverT / 36, 2) * Math.abs(Math.cos(coverT / 36 * Math.PI * 1.5))) : 0;
+    // soft band behind the title for contrast
+    for (let y = 0; y < 64; y++){ ctx.fillStyle = `rgba(20,30,60,${.28 * (1 - y / 64)})`; ctx.fillRect(0, y, W, 1); }
+    otext('ALWIN', cx, 8 + drop, 3, '#fff3b8', '#2a1a0e', '#ffbe3b');
+    otext('RUN', cx, 33 + drop, 3, '#fff3b8', '#2a1a0e', '#ff7f3a');
+    // speed streaks behind RUN
+    if (drop === 0){
+      const sx = Math.round(cx - width('RUN', 3) / 2) - 6, st = tick % 24;
+      [[38, 18], [44, 26], [50, 14]].forEach(([y, len], i) => { const off = (st + i * 7) % 24 < 12 ? 0 : 3; ctx.fillStyle = '#2a1a0e'; ctx.fillRect(sx - len - off, y, len, 2); ctx.fillStyle = '#fff3b8'; ctx.fillRect(sx - len - off + 1, y, Math.max(2, len - 6), 1); });
     }
+    // sparkles that twinkle around the title
+    [[24, 12], [138, 10], [124, 40], [34, 44], [146, 54]].forEach(([x, y], i) => {
+      const ph = (Math.floor(tick / 10) + i * 3) % 8; if (ph > 4) return;
+      const r = ph < 2 ? 1 : ph < 4 ? 2 : 1; ctx.fillStyle = '#fffbe0';
+      ctx.fillRect(x, y - r, 1, r * 2 + 1); ctx.fillRect(x - r, y, r * 2 + 1, 1);
+    });
+    // tagline
+    const tg = 'A PORTFOLIO ADVENTURE', tx = Math.round(cx - width(tg) / 2);
+    for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1]]) text(ctx, tg, tx + dx, 60 + dy, '#2a1a0e');
+    text(ctx, tg, tx, 60, '#e6f5c8');
+    // start button
+    const pw = 92, px2 = Math.round(cx - pw / 2), py2 = 72, pressed = Math.floor(tick / 30) % 2;
+    ctx.fillStyle = '#2a1a0e'; ctx.fillRect(px2 + 1, py2 + 1, pw, 14); ctx.fillRect(px2, py2 + 2, pw + 2, 12);
+    ctx.fillStyle = pressed ? '#e0336b' : '#ff4f86'; ctx.fillRect(px2 + 1, py2 + 1 + pressed, pw - 2, 12 - pressed);
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(px2 + 2, py2 + 2 + pressed, pw - 4, 1);
+    text(ctx, '>', px2 + 5 + (pressed ? 1 : 0), py2 + 4 + pressed, '#fff3b8');
+    text(ctx, 'PRESS A / TAP', px2 + 14, py2 + 4 + pressed, '#ffffff');
+    if (rhi > 0){ const t2 = 'BEST ' + rhi + ' XP', bx = Math.round(cx - width(t2) / 2); for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1]]) text(ctx, t2, bx + dx, 91 + dy, '#2a1a0e'); text(ctx, t2, bx, 91, '#ffd54a'); }
   }
   function rbox(){ ctx.fillStyle = 'rgba(20,18,16,.72)'; ctx.fillRect(10, 28, 140, 58); ctx.fillStyle = '#f4f7ec'; ctx.fillRect(10, 28, 140, 1); ctx.fillRect(10, 85, 140, 1); }
 
@@ -579,7 +636,7 @@
       return;
     }
     if (state === 'rover'){
-      if (deadT < 20) return;
+      if (deadT < 30) return;
       if (k === 'a' || k === 'start' || k === 'screen' || k === 'up'){ startRun(); rStarted = true; rJump(); }
       else if (k === 'b' || k === 'select'){ state = 'menu'; beep(300, .06); }
       return;
@@ -684,11 +741,11 @@
       return;
     }
     if (state === 'menu' || state === 'msg'){
-      center(ctx, 'SELECT A LEVEL', 10, C.mid);
+      center(ctx, 'SELECT A GAME', 10, C.mid);
       ctx.fillStyle = C.dim; ctx.fillRect(10, 21, 140, 1);
       MENU.forEach((m, i) => {
-        const y = 28 + i * 14, sel = i === menuI;
-        if (sel){ ctx.fillStyle = C.ink; ctx.fillRect(14, y - 3, 132, 12); }
+        const y = 38 + i * 22, sel = i === menuI;
+        if (sel){ ctx.fillStyle = C.ink; ctx.fillRect(14, y - 5, 132, 16); }
         text(ctx, m.label, 32, y, sel ? C.bg : C.ink);
         if (sel && Math.floor(tick / 14) % 2 === 0) text(ctx, '>', 20, y, C.bg);
       });
@@ -729,7 +786,7 @@
       return;
     }
     if (state === 'rover'){
-      if (deadT < 20) return;
+      if (deadT < 30) return;
       if (k === 'a' || k === 'start' || k === 'screen' || k === 'up'){ startRun(); rStarted = true; rJump(); }
       else if (k === 'b' || k === 'select'){ state = 'menu'; beep(300, .06); }
       return;
