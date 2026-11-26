@@ -43,7 +43,7 @@ img{max-width:100%;display:block}
 .console{position:relative;width:min(720px,92vw,calc((100svh - 330px)*1.785));min-width:300px;aspect-ratio:1455/815;margin:10px 0 4px;user-select:none;-webkit-user-select:none;touch-action:manipulation;filter:drop-shadow(0 26px 30px rgba(40,30,20,.16)) drop-shadow(0 4px 6px rgba(40,30,20,.12));animation:drop .9s steps(9) both}
 @keyframes drop{from{transform:translateY(-24px);opacity:0}to{transform:none;opacity:1}}
 .console>img{width:100%;height:100%;pointer-events:none}
-.screen{position:absolute;left:29.95%;top:13.9%;width:39.1%;height:56.5%;border-radius:6px;overflow:hidden;background:var(--lcd);cursor:inherit}
+.screen{position:absolute;left:29.6%;top:13.6%;width:40.85%;height:57.25%;border-radius:6px;overflow:hidden;background:var(--lcd);cursor:inherit}
 .screen canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
 .screen::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),radial-gradient(120% 90% at 30% 15%,rgba(255,255,255,.08),transparent 55%)}
 .btn{position:absolute;border:0;padding:0;background:transparent;cursor:inherit;-webkit-tap-highlight-color:transparent}
