@@ -34,13 +34,14 @@
   // ---------- state ----------
   let state = 'boot', tick = 0, bootT = 0, menuI = 0, msg = '', msgT = 0;
   const MENU = [
+    { label:'ALWIN RUN', act:() => startRun() },
     { label:'PLAY SNAKE', act:() => startSnake() },
     { label:'PLAY TETRIS', act:() => startTetris() },
     { label:'VIEW WORK', act:() => jump('#work', 'LOADING WORK') },
     { label:'ABOUT ME', act:() => jump('#about', 'LOADING PROFILE') },
     { label:'SAY HELLO', act:() => jump('#contact', 'OPENING CHAT') }
   ];
-  let hi = 0, thi = 0; try { hi = +localStorage.getItem('as-snake-hi') || 0; thi = +localStorage.getItem('as-tetris-hi') || 0; } catch(e){}
+  let hi = 0, thi = 0, rhi = 0; try { hi = +localStorage.getItem('as-snake-hi') || 0; thi = +localStorage.getItem('as-tetris-hi') || 0; rhi = +localStorage.getItem('as-run-hi') || 0; } catch(e){}
 
   function jump(sel, m){
     state = 'msg'; msg = m; msgT = 0;
@@ -185,6 +186,108 @@
     }
   }
 
+
+  // ---------- alwin run (dino-style runner) ----------
+  const RP = { k:'#141210', H:'#1f1915', S:'#b0774f', W:'#ffffff', P:'#3c4150', K:'#ffffff', r:'#e0336b', b:'#5b8cf0', g:'#8a9a6b', w:'#f4f7ec' };
+  const RBG = '#cfdcb4', RINK = '#141210', RDIM = '#a9b98d';
+  const HEAD = ['..HHHHH...','.HHHHHHH..','HHHHHHHHH.','HHSSSSSHH.','.HSkSSkS..','..SSSSS...','...SSS....','..WWWWW...','.WWWWWWW..','.SWWWWWS..','..PPPPP...'];
+  const LEGS = {
+    a:['..PP.PP...','.PP...PP..','kKK...KKk.'],
+    b:['...PPP....','...PP.P...','..KKk.KK..'],
+    j:['.PP..PP...','PP....PP..','KK.....KK.'],
+    d:['.PP..PP...','.PP..PP...','kKK..KKk..']
+  };
+  const DEAD_HEAD = ['..HHHHH...','.HHHHHHH..','HHHHHHHHH.','HHSSSSSHH.','.HSkSkSk..','..SSSSS...','...SrS....','..WWWWW...','.WWWWWWW..','SWWWWWWWS.','..PPPPP...'];
+  const OBS = {
+    bug:   { w:7, h:5, fly:false, px:['.k...k.','..rrr..','.rrkrr.','krrrrrk','.k.k.k.'] },
+    files: { w:6, h:9, fly:false, px:['kkkk..','kWWkk.','kWWWWk','kkkkkk','kWWWWk','kkkkkk','kWWWWk','kWWWWk','kkkkkk'] },
+    tall:  { w:6, h:12, fly:false, px:['kkkk..','kWWkk.','kWWWWk','kkkkkk','kWWWWk','kkkkkk','kWWWWk','kkkkkk','kWWWWk','kkkkkk','kWWWWk','kkkkkk'] },
+    clock: { w:7, h:8, fly:false, px:['r.....r','.rrrrr.','rWWkWWr','rWWkWWr','rWWkkWr','rWWWWWr','.rrrrr.','.k...k.'] },
+    popup: { w:10, h:7, fly:true, px:['kkkkkkkkkk','kbbbbbbrWk','kWWWWWWWWk','kWkkkkkWWk','kWWWWWWWWk','kWWWkkWWWk','kkkkkkkkkk'] }
+  };
+  const SC = 2, GROUND = 112;
+  let rY, rVy, rObs, rSpeed, rDist, rNext, rClouds, rGroundX, rPaused, rStarted, rFrameT, rMilestone;
+  function startRun(){
+    rY = 0; rVy = 0; rObs = []; rSpeed = 1.7; rDist = 0; rNext = 200; rGroundX = 0; rPaused = false; rStarted = false; rFrameT = 0; rMilestone = 100;
+    rClouds = [{ x: 30, y: 22 }, { x: 105, y: 38 }, { x: 170, y: 16 }];
+    state = 'run';
+  }
+  function rJump(){
+    if (!rStarted){ rStarted = true; }
+    if (rY === 0){ rVy = 4.7; beep(520, .07, 'square', 900); }
+  }
+  function rSpawn(){
+    const roll = Math.random(), sc = rDist / 10;
+    let k = roll < .32 ? 'bug' : roll < .55 ? 'files' : roll < .74 ? 'clock' : roll < .86 && sc > 150 ? 'tall' : sc > 250 ? 'popup' : 'bug';
+    const o = OBS[k], ob = { k, x: 164, w: o.w * SC, h: o.h * SC };
+    ob.y = o.fly ? (Math.random() < .5 ? GROUND - 34 - ob.h : GROUND - 14 - ob.h) : GROUND - ob.h;
+    // the high pop-up flies over a running player: only a jump hits it
+    rObs.push(ob);
+    if (Math.random() < .18 && !o.fly && sc > 80){ rObs.push({ k:'bug', x: 164 + ob.w + 4, w: 14, h: 10, y: GROUND - 10 }); }
+    const gap = 70 + rSpeed * 34 + Math.random() * 90;
+    rNext = gap;
+  }
+  function runTick(dt){
+    const f = dt / 16.67;
+    rFrameT += dt;
+    if (!rStarted) return;
+    rSpeed = Math.min(4.2, 1.7 + rDist / 4200);
+    rDist += rSpeed * f;
+    rGroundX = (rGroundX + rSpeed * f) % 16;
+    rClouds.forEach(c => { c.x -= rSpeed * .25 * f; if (c.x < -24){ c.x = 170 + Math.random() * 30; c.y = 12 + Math.random() * 34; } });
+    if (rY > 0 || rVy > 0){ rY += rVy * f; rVy -= .27 * f; if (rY <= 0){ rY = 0; rVy = 0; } }
+    rObs.forEach(o => o.x -= rSpeed * f);
+    rObs = rObs.filter(o => o.x > -40);
+    rNext -= rSpeed * f; if (rNext <= 0) rSpawn();
+    const score = Math.floor(rDist / 10);
+    if (score >= rMilestone){ rMilestone += 100; beep(990, .08); setTimeout(() => beep(1320, .1), 90); }
+    // collision (player box with a little forgiveness)
+    const px = 18 + 4, pw = 20 - 8, ptop = GROUND - 28 - rY + 3, pbot = GROUND - rY - 1;
+    for (const o of rObs){
+      if (px < o.x + o.w - 3 && px + pw > o.x + 3 && ptop < o.y + o.h - 2 && pbot > o.y + 2){
+        state = 'rover'; deadT = 0; beep(300, .5, 'sawtooth', 50);
+        if (score > rhi){ rhi = score; try { localStorage.setItem('as-run-hi', rhi); } catch(e){} }
+        return;
+      }
+    }
+  }
+  function spr(rows, x, y, s, pal){
+    rows.forEach((r, j) => { for (let i = 0; i < r.length; i++){ const c = r[i]; if (c === '.' || !pal[c]) continue; ctx.fillStyle = pal[c]; ctx.fillRect(Math.round(x + i*s), Math.round(y + j*s), s, s); } });
+  }
+  function drawRun(){
+    ctx.fillStyle = RBG; ctx.fillRect(0, 0, W, H);
+    // clouds
+    rClouds.forEach(c => { ctx.fillStyle = RP.w; ctx.fillRect(Math.round(c.x), c.y, 16, 3); ctx.fillRect(Math.round(c.x) + 4, c.y - 3, 8, 3); });
+    // ground
+    ctx.fillStyle = RINK; ctx.fillRect(0, GROUND, W, 1);
+    ctx.fillStyle = RDIM;
+    for (let x = -rGroundX; x < W; x += 16){ ctx.fillRect(Math.round(x) + 2, GROUND + 4, 3, 1); ctx.fillRect(Math.round(x) + 10, GROUND + 9, 2, 1); }
+    // obstacles
+    rObs.forEach(o => spr(OBS[o.k].px, o.x, o.y, SC, RP));
+    // player
+    const dead = state === 'rover';
+    const legs = dead ? LEGS.d : rY > 0 ? LEGS.j : (!rStarted ? LEGS.a : (Math.floor(rFrameT / 110) % 2 ? LEGS.a : LEGS.b));
+    const py = GROUND - 28 - Math.round(rY);
+    spr(dead ? DEAD_HEAD : HEAD, 18, py, SC, RP); spr(legs, 18, py + 22, SC, RP);
+    // hud
+    const score = Math.floor(rDist / 10);
+    const sx = 'XP ' + String(score).padStart(5, '0'); text(ctx, sx, W - 4 - width(sx), 4, RINK);
+    const hx = 'HI ' + String(Math.max(rhi, score)).padStart(5, '0'); text(ctx, hx, W - 8 - width(sx) - width(hx), 4, '#6f7d55');
+    if (!rStarted && state === 'run'){
+      center(ctx, 'ALWIN RUN', 30, RINK, 2);
+      if (Math.floor(tick / 28) % 2 === 0) center(ctx, 'A / TAP TO JUMP', 54, RINK);
+      center(ctx, 'DODGE BUGS & DEADLINES', 66, '#6f7d55');
+    }
+    if (state === 'run' && rPaused){ rbox(); center(ctx, 'PAUSED', 50, RINK, 2); center(ctx, 'SELECT FOR MENU', 70, '#6f7d55'); }
+    if (dead){
+      deadT++; rbox();
+      center(ctx, 'GAME OVER', 40, RP.r, 2);
+      center(ctx, 'XP ' + score + (score && score >= rhi ? ' NEW HI!' : ''), 62, RINK);
+      if (deadT > 20) center(ctx, 'A:RETRY  B:MENU', 76, '#6f7d55');
+    }
+  }
+  function rbox(){ ctx.fillStyle = 'rgba(207,220,180,.92)'; ctx.fillRect(8, 30, 144, 58); ctx.fillStyle = RINK; ctx.fillRect(8, 30, 144, 1); ctx.fillRect(8, 87, 144, 1); }
+
   // ---------- input ----------
   const DIRS = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
   function press(k){
@@ -204,6 +307,18 @@
       if (DIRS[k]){ turn(DIRS[k]); }
       else if (k === 'start' || k === 'screen'){ paused = !paused; beep(paused ? 400 : 600, .06); }
       else if (k === 'b'){ state = 'menu'; beep(300, .06); }
+      return;
+    }
+    if (state === 'run'){
+      if (k === 'a' || k === 'up' || k === 'screen' || k === 'drop'){ if (rPaused) return; rJump(); return; }
+      if (k === 'start'){ if (!rStarted) { rJump(); return; } rPaused = !rPaused; beep(rPaused ? 400 : 600, .06); return; }
+      if (k === 'b' || k === 'select'){ state = 'menu'; beep(300, .06); }
+      return;
+    }
+    if (state === 'rover'){
+      if (deadT < 20) return;
+      if (k === 'a' || k === 'start' || k === 'screen' || k === 'up'){ startRun(); rStarted = true; rJump(); }
+      else if (k === 'b' || k === 'select'){ state = 'menu'; beep(300, .06); }
       return;
     }
     if (state === 'tetris'){
@@ -246,7 +361,8 @@
     b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); b.classList.add('on'); press(k); setTimeout(up, 120); } });
   });
   const screen = document.getElementById('screen');
-  screen.addEventListener('click', () => { if ((state !== 'snake' && state !== 'tetris') || (state === 'snake' && paused) || (state === 'tetris' && tPaused)) press('screen'); });
+  screen.addEventListener('pointerdown', e => { if (state === 'run' || state === 'rover'){ e.preventDefault(); press('screen'); } });
+  screen.addEventListener('click', () => { if (state === 'run' || state === 'rover') return; if ((state !== 'snake' && state !== 'tetris') || (state === 'snake' && paused) || (state === 'tetris' && tPaused)) press('screen'); });
 
   // swipe on the screen for phones
   let sx = 0, sy = 0;
@@ -308,8 +424,8 @@
       center(ctx, 'SELECT A LEVEL', 10, C.mid);
       ctx.fillStyle = C.dim; ctx.fillRect(10, 21, 140, 1);
       MENU.forEach((m, i) => {
-        const y = 30 + i * 16, sel = i === menuI;
-        if (sel){ ctx.fillStyle = C.ink; ctx.fillRect(14, y - 3, 132, 13); }
+        const y = 28 + i * 14, sel = i === menuI;
+        if (sel){ ctx.fillStyle = C.ink; ctx.fillRect(14, y - 3, 132, 12); }
         text(ctx, m.label, 32, y, sel ? C.bg : C.ink);
         if (sel && Math.floor(tick / 14) % 2 === 0) text(ctx, '>', 20, y, C.bg);
       });
@@ -323,6 +439,7 @@
       return;
     }
     if (state === 'tetris' || state === 'tover'){ drawTetris(); return; }
+    if (state === 'run' || state === 'rover'){ drawRun(); return; }
     // snake and game over share the board
     text(ctx, 'SCORE ' + score, 4, 4, C.ink);
     const hs = 'HI ' + Math.max(hi, score); text(ctx, hs, W - 4 - width(hs), 4, C.mid);
@@ -342,6 +459,18 @@
       center(ctx, ready > 30 ? '3' : ready > 15 ? '2' : '1', 56, C.red, 2);
     }
     if (state === 'snake' && paused){ box(); center(ctx, 'PAUSED', 56, C.ink, 2); center(ctx, 'START TO GO', 76, C.mid); }
+    if (state === 'run'){
+      if (k === 'a' || k === 'up' || k === 'screen' || k === 'drop'){ if (rPaused) return; rJump(); return; }
+      if (k === 'start'){ if (!rStarted) { rJump(); return; } rPaused = !rPaused; beep(rPaused ? 400 : 600, .06); return; }
+      if (k === 'b' || k === 'select'){ state = 'menu'; beep(300, .06); }
+      return;
+    }
+    if (state === 'rover'){
+      if (deadT < 20) return;
+      if (k === 'a' || k === 'start' || k === 'screen' || k === 'up'){ startRun(); rStarted = true; rJump(); }
+      else if (k === 'b' || k === 'select'){ state = 'menu'; beep(300, .06); }
+      return;
+    }
     if (state === 'tetris'){
       if (k === 'start' || k === 'screen'){ tPaused = !tPaused; beep(tPaused ? 400 : 600, .06); return; }
       if (k === 'select'){ state = 'menu'; beep(300, .06); return; }
@@ -378,6 +507,7 @@
       else { acc += dt; while (acc >= stepMs && state === 'snake'){ acc -= stepMs; step(); } }
     }
     if (state === 'tetris' && !tPaused) tetrisTick(dt);
+    if (state === 'run' && !rPaused) runTick(dt);
     if (state === 'boot' && ++idle === 300) startBtn.classList.add('hint');
     frame();
     requestAnimationFrame(loop);
