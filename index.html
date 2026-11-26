@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alwin S Satheesh — UI/UX & Game Designer</title>
+<meta name="description" content="Portfolio of Alwin S Satheesh, a UI/UX designer with a game design background. Press start.">
+<meta property="og:title" content="Alwin S Satheesh — UI/UX & Game Designer">
+<meta property="og:description" content="A playable portfolio. Press start.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%23141210'/%3E%3Crect x='1' y='1' width='6' height='4' fill='%23e8f1d4'/%3E%3Crect x='5' y='6' width='1' height='1' fill='%23b3164c'/%3E%3Crect x='1' y='6' width='2' height='1' fill='%23e8f1d4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="logo" href="#top" aria-label="Alwin S Satheesh, back to top">AS</a>
+  <nav class="nav" aria-label="Main">
+    <a href="#work">Work</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <div class="top-r">
+    <button class="pill" id="sound" aria-pressed="true">Sound on</button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- ============ HERO: the playable console ============ -->
+  <section class="hero" aria-label="Intro">
+    <div class="console" id="console">
+      <img src="assets/console.webp" alt="A retro handheld game console. Its screen is playable." width="1455" height="815">
+      <div class="screen" id="screen" role="application" aria-label="Game screen. Press Start, or Enter on your keyboard.">
+        <canvas id="lcd" width="160" height="128"></canvas>
+      </div>
+      <button class="btn b-up" data-k="up" aria-label="D-pad up"></button>
+      <button class="btn b-down" data-k="down" aria-label="D-pad down"></button>
+      <button class="btn b-left" data-k="left" aria-label="D-pad left"></button>
+      <button class="btn b-right" data-k="right" aria-label="D-pad right"></button>
+      <button class="btn round b-a" data-k="a" aria-label="A button"></button>
+      <button class="btn round b-b" data-k="b" aria-label="B button"></button>
+      <button class="btn pillb b-select" data-k="select" aria-label="Select button"></button>
+      <button class="btn pillb b-start" data-k="start" aria-label="Start button"></button>
+    </div>
+    <p class="keys">Click the buttons, or use <kbd>←↑↓→</kbd> <kbd>Enter</kbd> start · <kbd>Z</kbd> A · <kbd>X</kbd> B · <kbd>Space</kbd> drop</p>
+
+    <h1 class="chips">
+      <span class="ln"><span class="sm l">Hi, I'm</span><span>Alwin</span><span class="sm p">a</span></span>
+      <span class="ln"><span>UI/UX</span><span class="amp">&amp;</span><span>Game</span><span>Designer</span></span>
+    </h1>
+
+    <a class="scrollcue" href="#about">Scroll ↓</a>
+  </section>
+
+  <!-- ============ ABOUT ============ -->
+  <section class="band" id="about">
+    <div class="wrap">
+      <div class="shead rv"><p>About</p><h2>player profile</h2></div>
+      <div class="about">
+        <div class="avatar-card rv">
+          <div class="floor"></div>
+          <div class="shadow"></div>
+          <button class="avwrap" id="avwrap" type="button" aria-label="Pixel art of Alwin: curly hair, white t-shirt, baggy pants, white sneakers. Click to interact.">
+            <svg class="avatar f-idle" id="avatar" aria-hidden="true"></svg>
+            <svg class="avatar f-wave" id="avatarWave" aria-hidden="true"></svg>
+          </button>
+          <div class="fx" id="fx" aria-hidden="true"></div>
+          <div class="bubble" id="bubble" aria-live="polite">Hey! Thanks for stopping by.</div>
+          <span class="tag">● Player 1 — Alwin · <span id="xp">0</span> XP</span>
+          <span class="hint-click">Click me</span>
+        </div>
+        <div class="bio rv">
+          <h3>Designing interfaces the way games are designed.</h3>
+          <p>I'm Alwin, a UI/UX designer from Trivandrum, Kerala. I'm pursuing an M.Des in UI/UX at Lovely Professional University (2025–27), after a B.Des in Game Design. Along the way I designed game UI and 2D art as an intern at Sunday Games.</p>
+          <p>Games taught me that good interfaces give people a clear goal, instant feedback and a reason to keep going. I bring that to products, from mobile apps to everyday appliances: research first, then systems, then the small details that make something feel good to use.</p>
+          <dl class="stats">
+            <div><dt>Class</dt><dd>UI/UX Designer</dd></div>
+            <div><dt>Home base</dt><dd>Trivandrum, Kerala</dd></div>
+            <div><dt>Current quest</dt><dd>M.Des, UI/UX · LPU · 2025–27</dd></div>
+            <div><dt>Previous level</dt><dd>B.Des, Game Design · LPU · 2020–24</dd></div>
+            <div><dt>Side quest cleared</dt><dd>UI Designer &amp; 2D Artist Intern, Sunday Games · 2024</dd></div>
+            <div><dt>Gamer tag</dt><dd>Jax Kasper</dd></div>
+          </dl>
+          <p class="inv-h">Inventory</p>
+          <ul class="inv">
+            <li><b>Fg</b><small>Figma</small></li>
+            <li><b>Ps</b><small>Photoshop</small></li>
+            <li><b>Ai</b><small>Illustrator</small></li>
+            <li><b>Ae</b><small>After Effects</small></li>
+            <li><b>Bl</b><small>Blender</small></li>
+            <li><b>Un</b><small>Unity</small></li>
+            <li><b>Wf</b><small>Webflow</small></li>
+          </ul>
+          <p class="inv-h">Side quests</p>
+          <ul class="quests"><li>Animation</li><li>Graphic design</li><li>Game dev</li><li>Web dev</li><li>Art</li><li>Music</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WORK ============ -->
+  <section class="band" id="work">
+    <div class="wrap">
+      <div class="shead rv"><p>Case studies</p><h2>select a level</h2></div>
+      <div class="work">
+        <a class="level rv" href="work/collecto.html" style="--hc:#F7C20D">
+          <div class="strip"><span class="lv">LVL 01</span><svg class="art" data-art="gem" style="--w:150%;--x:-30%;--y:30%;--r:-14deg"></svg><span class="tag"><svg data-art="gem" aria-hidden="true"></svg>Collecto</span></div>
+          <div><h3>Collecto</h3><p>A platform where the community votes on designs before they become limited-edition collectibles.</p><span class="go">Play level →</span></div>
+        </a>
+        <a class="level rv" href="work/finmerge.html" style="--hc:#C8F57A">
+          <div class="strip"><span class="lv">LVL 02</span><svg class="art" data-art="coin" style="--w:140%;--x:2%;--y:26%;--r:12deg"></svg><span class="tag"><svg data-art="coin" aria-hidden="true"></svg>Finmerge</span></div>
+          <div><h3>Finmerge</h3><p>An expense tracker that brings every bank account, wallet and bill into one calm place.</p><span class="go">Play level →</span></div>
+        </a>
+        <a class="level rv" href="work/mixer.html" style="--hc:#2F7CF6">
+          <div class="strip"><span class="lv">LVL 03</span><svg class="art" data-art="blender" style="--w:135%;--x:-48%;--y:20%;--r:-8deg"></svg><span class="tag"><svg data-art="blender" aria-hidden="true"></svg>Mixer UI</span></div>
+          <div><h3>Mixer Grinder Redesign</h3><p>Nielsen's heuristics applied to a kitchen appliance most Indian homes use every day.</p><span class="go">Play level →</span></div>
+        </a>
+        <div class="level locked rv" aria-label="Level 4, coming soon">
+          <div class="strip"><span class="lv">LVL 04</span><svg class="art" data-art="lock" style="--w:120%;--x:8%;--y:30%;--r:6deg"></svg><span class="tag"><svg data-art="lock" aria-hidden="true"></svg>Locked</span></div>
+          <div><h3>Next level loading…</h3><p>A new case study is on its way. Check back soon.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONTACT ============ -->
+  <section class="band contact" id="contact">
+    <div class="wrap rv">
+      <h2>Got a quest?</h2>
+      <p class="sub">Let's make something people enjoy using.</p>
+      <div class="links">
+        <a class="primary" href="mailto:alwinkuttu72@gmail.com">Email me</a>
+        <button type="button" id="copy" data-mail="alwinkuttu72@gmail.com">Copy email</button>
+        <a href="https://www.linkedin.com/in/alwin-s-satheesh-27164722a/" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://www.behance.net/alwinkuttu" target="_blank" rel="noopener">Behance</a>
+        <a href="assets/Alwin_S_Satheesh_Resume.pdf" target="_blank" rel="noopener" id="resume">Résumé</a>
+      </div>
+      <p class="mailtext">alwinkuttu72@gmail.com</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>© 2026 Alwin S Satheesh</span>
+  <span>Built pixel by pixel</span>
+  <a href="#top">Back to start ↑</a>
+</footer>
+
+<script src="js/art-data.js"></script>
+<script src="js/pixels.js"></script>
+<script src="js/console.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game over — page not found</title>
+<style>
+@font-face{font-family:"Silkscreen";src:url(https://alwinkuttu72.github.io/assets/fonts/silkscreen-latin-400-normal.woff2) format("woff2")}
+:root{--lcd:#0d0f0b;--lcd-ink:#e8f1d4;--px:"Silkscreen",ui-monospace,monospace}
+body{margin:0;background:#f4f1ea;font-family:var(--px)}
+@keyframes bob{50%{transform:translateY(4px)}}
+.lost{min-height:100svh;display:grid;place-items:center;text-align:center;padding:24px}
+.lost .scr{background:var(--lcd);color:var(--lcd-ink);padding:44px 40px;border-radius:10px;border:14px solid #2b2b2b;box-shadow:0 20px 40px rgba(0,0,0,.15);max-width:520px}
+.lost h1{font:400 clamp(30px,6vw,48px)/1 var(--px);color:#e0336b;margin:0 0 14px}
+.lost p{font:400 14px/1.5 var(--px);margin:0 0 24px;color:#9aa68b}
+.lost a{font:400 13px/1 var(--px);color:var(--lcd);background:var(--lcd-ink);padding:12px 16px;text-decoration:none;display:inline-block;animation:bob 1.2s steps(2) infinite}
+</style>
+</head>
+<body>
+<main class="lost"><div class="scr"><h1>Game over</h1><p>404 — this level doesn't exist.</p><a href="/" id="home">Press start to continue</a></div></main>
+<script>/* send people to the site root, whether it lives at / or /repo-name/ */
+{const p=location.pathname.split("/").filter(Boolean);if(location.hostname.endsWith("github.io")&&p.length&&!location.hostname.startsWith(p[0]))document.getElementById("home").href="/"+p[0]+"/";}</script>
+</body>
+</html>
