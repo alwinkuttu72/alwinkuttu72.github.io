@@ -46,7 +46,7 @@
   let snake, dir, queue, food, score, stepMs, acc, last, paused, deadT, ready;
   function startSnake(){
     snake = [{x:6,y:7},{x:5,y:7},{x:4,y:7}]; dir = {x:1,y:0}; queue = [];
-    score = 0; stepMs = 135; acc = 0; paused = false; ready = 45;
+    score = 0; stepMs = 210; acc = 0; paused = false; ready = 45;
     placeFood(); state = 'snake';
   }
   function placeFood(){
@@ -61,15 +61,16 @@
   }
   function step(){
     if (queue.length) dir = queue.shift();
-    const h = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
-    if (h.x < 0 || h.y < 0 || h.x >= GX || h.y >= GY || snake.some(s => s.x === h.x && s.y === h.y)){
+    // walls wrap around: leave one side, come back on the other
+    const h = { x: (snake[0].x + dir.x + GX) % GX, y: (snake[0].y + dir.y + GY) % GY };
+    if (snake.some(s => s.x === h.x && s.y === h.y)){
       state = 'over'; deadT = 0; beep(320, .45, 'sawtooth', 60);
       if (score > hi){ hi = score; try { localStorage.setItem('as-snake-hi', hi); } catch(e){} }
       return;
     }
     snake.unshift(h);
     if (h.x === food.x && h.y === food.y){
-      score++; stepMs = Math.max(62, stepMs - 4); placeFood(); beep(880, .09, 'square', 1500);
+      score++; stepMs = Math.max(130, stepMs - 2); placeFood(); beep(880, .09, 'square', 1500);
     } else snake.pop();
   }
 
@@ -122,7 +123,13 @@
     if (fits(cur.cells, cur.x, cur.y + 1)) { cur.y++; tScore++; } else lock();
     tAcc = 0;
   }
-  function hardDrop(){ while (fits(cur.cells, cur.x, cur.y + 1)) { cur.y++; tScore += 2; } lock(); }
+  let trails = [], tShake = 0;
+  function hardDrop(){
+    const y0 = cur.y, k = cur.k, cells = cur.cells.map(c => c.slice()), x = cur.x;
+    while (fits(cur.cells, cur.x, cur.y + 1)) { cur.y++; tScore += 2; }
+    if (cur.y > y0){ trails.push({ cells, x, y0, y1: cur.y, k, life: 14 }); beep(1100, .14, 'sawtooth', 160); tShake = 4; }
+    lock();
+  }
   function tetrisTick(dt){
     if (clearing){
       if (++clearT > 14){
@@ -144,6 +151,8 @@
     ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x + 1, y + s - 2, s - 2, 1);
   }
   function drawTetris(){
+    if (tShake > 0) tShake--;
+    ctx.setTransform(1, 0, 0, 1, 0, tShake % 2 ? 1 : 0);   // tiny thud when a piece slams down
     // well
     ctx.fillStyle = '#151912'; ctx.fillRect(TX, TY, TW * TC, TH * TC);
     for (let y = 0; y < TH; y++) for (let x = 0; x < TW; x++){ ctx.fillStyle = '#1e241a'; ctx.fillRect(TX + x*TC + 2, TY + y*TC + 2, 1, 1); }
@@ -153,6 +162,17 @@
       if (clearing && clearing.includes(y)) { if (Math.floor(clearT / 3) % 2 === 0) cell(TX + x*TC, TY + y*TC, C.ink); }
       else cell(TX + x*TC, TY + y*TC, TCOL[k]);
     }));
+    // whoosh streaks left by a slammed piece
+    trails.forEach(t => {
+      const a = t.life / 14, col = hex(TCOL[t.k]);
+      const cols = {}; t.cells.forEach(([cx, cy]) => { const top = Math.min(cols[cx] ?? 99, cy); cols[cx] = top; });
+      Object.entries(cols).forEach(([cx, cy]) => {
+        const x = TX + (t.x + +cx) * TC, yA = TY + (t.y0 + cy) * TC, yB = TY + (t.y1 + cy) * TC;
+        for (let y = yA; y < yB; y++){ const f = (y - yA) / Math.max(1, yB - yA); ctx.fillStyle = `rgba(${col},${(a * f * .55).toFixed(3)})`; ctx.fillRect(x + 1, y, TC - 3, 1); }
+      });
+      t.life--;
+    });
+    trails = trails.filter(t => t.life > 0);
     if (state === 'tetris' && !clearing){
       let gy = cur.y; while (fits(cur.cells, cur.x, gy + 1)) gy++;
       ctx.fillStyle = 'rgba(232,241,212,.18)';
@@ -177,6 +197,7 @@
       center(ctx, 'SCORE ' + tScore + (tScore && tScore >= thi ? ' NEW HI!' : ''), 66, C.ink);
       if (deadT > 20) center(ctx, 'A:RETRY  B:MENU', 82, C.mid);
     }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
 
@@ -291,8 +312,10 @@
   function buildWorld(){
     seed = 7;
     // far: pale ruins, monoliths and aqueducts
-    const [far, f] = mk(TILE, GROUND);
-    for (let x = 0; x < TILE; x++){ const hh = 10 + Math.round(4 * Math.sin(x / 23) + 3 * Math.sin(x / 9)); f.fillStyle = '#cde7b4'; f.fillRect(x, GROUND - hh, 1, hh); }
+    const [far, f0] = mk(TILE, GROUND);
+    // draw helper that wraps shapes across the loop point, so the layer tiles seamlessly
+    const f = { set fillStyle(v){ f0.fillStyle = v; }, fillRect(x, y, w, h){ f0.fillRect(x, y, w, h); if (x + w > TILE) f0.fillRect(x - TILE, y, w, h); } };
+    for (let x = 0; x < TILE; x++){ const hh = 10 + Math.round(4 * Math.sin(x / TILE * Math.PI * 4) + 3 * Math.sin(x / TILE * Math.PI * 10)); f.fillStyle = '#cde7b4'; f.fillRect(x, GROUND - hh, 1, hh); }
     [[0, 130], [190, 320]].forEach(([x0, x1]) => {
       f.fillStyle = '#e4eef1'; f.fillRect(x0, 34, x1 - x0, 5); f.fillStyle = '#c6d7dd'; f.fillRect(x0, 39, x1 - x0, 2);
       for (let x = x0 + 6; x < x1 - 4; x += 22){ f.fillStyle = '#dbe8ec'; f.fillRect(x, 41, 5, GROUND - 41); f.fillStyle = '#c3d4da'; f.fillRect(x + 4, 41, 1, GROUND - 41); f.fillStyle = '#eef5f7'; f.fillRect(x, 41, 1, GROUND - 41); }
@@ -340,7 +363,7 @@
     }
     boulder(8, 22, 30); boulder(96, 30, 22); boulder(210, 20, 36); boulder(262, 34, 18);
     tree(62, 1); tree(170, .8); lamp(140); lamp(300);
-    for (let i = 0; i < 9; i++){ const x = Math.floor(rnd() * TILE), r = 3 + Math.floor(rnd() * 4); for (let y = -r; y <= 0; y++) for (let k = -r * 2; k <= r * 2; k++) if (inEll(k, y, 0, 0, r * 2, r)) dot(g, x + k, GROUND - 1 + y, y < -r + 2 ? '#8cbc3c' : '#6f9c2c'); }
+    for (let i = 0; i < 9; i++){ const x = Math.floor(rnd() * TILE), r = 3 + Math.floor(rnd() * 4); for (let y = -r; y <= 0; y++) for (let k = -r * 2; k <= r * 2; k++) if (inEll(k, y, 0, 0, r * 2, r)) dot(g, ((x + k) % TILE + TILE) % TILE, GROUND - 1 + y, y < -r + 2 ? '#8cbc3c' : '#6f9c2c'); }
     // ground strip: grass, tufts, earth bank
     const [gr, d] = mk(TILE, WATER - GROUND + 4);
     d.fillStyle = '#7cb342'; d.fillRect(0, 4, TILE, 3); d.fillStyle = '#a5d455'; d.fillRect(0, 4, TILE, 1);
@@ -524,6 +547,9 @@
     wc.globalCompositeOperation = 'source-over';
     const shk = rShake > 0 ? Math.round((Math.random() * 2 - 1) * Math.min(2, rShake / 4)) : 0;
     ctx.drawImage(worldC, shk, 0);
+    // fill the strip the shake uncovers, so no gap shows at the edges
+    if (shk > 0) ctx.drawImage(worldC, 0, 0, shk, H, 0, 0, shk, H);
+    if (shk < 0) ctx.drawImage(worldC, W + shk, 0, -shk, H, W + shk, 0, -shk, H);
     // lamp light at night
     if (night > .05){
       ctx.globalCompositeOperation = 'lighter';
@@ -647,7 +673,7 @@
       if (tPaused){ if (k === 'b'){ state = 'menu'; beep(300, .06); } return; }
       if (clearing) return;
       if (k === 'left') move(-1); else if (k === 'right') move(1);
-      else if (k === 'down') softDrop();
+      else if (k === 'down') hardDrop();
       else if (k === 'up' || k === 'a') rotate(1);
       else if (k === 'b') rotate(-1);
       else if (k === 'drop') hardDrop();
@@ -673,7 +699,7 @@
     const down = e => {
       e.preventDefault(); b.classList.add('on'); press(k);
       if (!DIRS[k] || (state !== 'snake' && state !== 'tetris')) beep(240, .025);
-      if (DIRS[k] && k !== 'up') rep = setTimeout(() => { rep2 = setInterval(() => { if (state === 'tetris') press(k); }, 65); }, 190);
+      if (DIRS[k] && k !== 'up' && k !== 'down') rep = setTimeout(() => { rep2 = setInterval(() => { if (state === 'tetris') press(k); }, 65); }, 190);
     };
     const up = () => { b.classList.remove('on'); clearTimeout(rep); clearInterval(rep2); };
     b.addEventListener('pointerdown', down);
@@ -708,6 +734,7 @@
     if (!k) return;
     // let arrows scroll the page while the console is just sitting on the title screen
     if ((state === 'boot' || state === 'menu' || state === 'msg') && k === 'drop') return;
+    if (e.repeat && state === 'tetris' && (k === 'down' || k === 'drop')) { e.preventDefault(); return; }
     if (state === 'boot' && DIRS[k]) return;
     e.preventDefault();
     const el = consoleEl.querySelector(flash[k]); if (el){ el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 110); }
@@ -797,7 +824,7 @@
       if (tPaused){ if (k === 'b'){ state = 'menu'; beep(300, .06); } return; }
       if (clearing) return;
       if (k === 'left') move(-1); else if (k === 'right') move(1);
-      else if (k === 'down') softDrop();
+      else if (k === 'down') hardDrop();
       else if (k === 'up' || k === 'a') rotate(1);
       else if (k === 'b') rotate(-1);
       else if (k === 'drop') hardDrop();
